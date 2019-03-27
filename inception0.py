@@ -22,7 +22,7 @@ from tensorflow.python.framework import constant_op
 from tensorflow.python.framework import dtypes
 from tensorflow.python.framework import meta_graph
 from tensorflow.python.framework import ops as tf_ops
-from tensorflow.python.grappler import cluster
+from tensorflow.python.grappler import cluster as clusters
 from tensorflow.python.grappler import graph_placer
 from tensorflow.python.ops import math_ops
 from tensorflow.python.ops import nn_ops
