@@ -32,7 +32,7 @@ from tensorflow.python.platform import test
 from nets import inception
 import tensorflow as tf
 
-cluster = tf.train.ClusterSpec({"local": ["172.23.10.2:2222", "172.23.10.6:2223"]})
+cluster = tf.train.ClusterSpec({"local": ["172.23.10.2:2222", "172.23.10.3:2223", "172.23.10.4:2224", "172.23.10.6:2225"]})
 server1 = tf.train.Server(cluster, job_name="local", task_index=0)
 
 class GraphPlacerTest():
@@ -81,6 +81,12 @@ class GraphPlacerTest():
       devices.append(
         device_properties_pb2.NamedDevice(
             properties=device_properties, name='/job:local/task:1/device:GPU:0'))
+      devices.append(
+        device_properties_pb2.NamedDevice(
+            properties=device_properties, name='/job:local/task:2/device:GPU:0'))
+      devices.append(
+        device_properties_pb2.NamedDevice(
+            properties=device_properties, name='/job:local/task:3/device:GPU:0'))
 
     device_properties = device_properties_pb2.DeviceProperties(
         type='CPU',
@@ -95,6 +101,12 @@ class GraphPlacerTest():
     devices.append(
       device_properties_pb2.NamedDevice(
           properties=device_properties, name='/job:local/task:1/device:CPU:0'))
+    devices.append(
+      device_properties_pb2.NamedDevice(
+          properties=device_properties, name='/job:local/task:2/device:CPU:0'))
+    devices.append(
+      device_properties_pb2.NamedDevice(
+          properties=device_properties, name='/job:local/task:3/device:CPU:0'))
 
     return clusters.Cluster(devices=devices)
 
