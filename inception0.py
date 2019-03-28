@@ -29,7 +29,6 @@ from tensorflow.python.ops import nn_ops
 from tensorflow.python.ops import random_ops
 from tensorflow.python.ops import variable_scope
 from tensorflow.python.platform import test
-from nets import inception
 import tensorflow as tf
 
 cluster = tf.train.ClusterSpec({"local": ["172.23.10.2:2222", "172.23.10.3:2223", "172.23.10.4:2224", "172.23.10.6:2225"]})
@@ -40,20 +39,12 @@ class GraphPlacerTest():
   @staticmethod
   def _buildInception():
     g = tf.Graph()
+
     with g.as_default():
-      train_batch_size = 5
-      eval_batch_size = 2
-      height, width = 150, 150
-      num_classes = 1000
-      train_inputs = tf.random_uniform((train_batch_size, height, width, 3))
-      inception.inception_v3(train_inputs, num_classes)
-      eval_inputs = tf.random_uniform((eval_batch_size, height, width, 3))
-      logits, _ = inception.inception_v3(eval_inputs, num_classes,
-                                       is_training=False, reuse=True)
-      predictions = tf.argmax(logits, 1)
+
 
     train_op = g.get_collection_ref(tf_ops.GraphKeys.TRAIN_OP)
-    train_op.append(predictions)
+    train_op.append()
     return g
 
   @staticmethod
