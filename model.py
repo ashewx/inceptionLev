@@ -2,6 +2,7 @@
 
 import re
 import tensorflow as tf
+from nets import inception
 from slim import slim
 
 import settings
@@ -44,7 +45,7 @@ def inference(images, num_classes, for_training=False, restore_logits=True, scop
                             activation=tf.nn.relu,
                             batch_norm_params=batch_norm_params):
             # endpoints = {"logits", "predictions"}, predictions is softmax of logits
-            logits, endpoints = slim.inception.inception_v3(
+            logits, endpoints = inception.inception_v3(
                 images,
                 dropout_keep_prob=dropout_keep_prob,
                 num_classes=num_classes,
