@@ -64,35 +64,25 @@ class GraphPlacerTest():
       # get training set
       print("The number of training images is: %d" % (dataset.cnt_samples(FLAGS.traincsv)))
       images, labels = dataset.csv_inputs(FLAGS.traincsv, FLAGS.batch_size, distorted=True)
-
       images_debug = datasets.debug(images)
-
         # get test set
         #test_cnt = dataset.cnt_samples(FLAGS.testcsv)
       test_cnt = 100
-
-      images_test, labels_test = dataset.test_inputs(FLAGS.testcsv, test_cnt)
-
-
       input_summaries = copy.copy(tf.get_collection(tf.GraphKeys.SUMMARIES))
 
       num_classes = FLAGS.num_classes
       restore_logits = not FLAGS.fine_tune
-
         # inference
         # logits is tuple (logits, aux_liary_logits, predictions)
         # logits: output of final layer, auxliary_logits: output of hidden layer, softmax: predictions
       logits = model.inference(images, num_classes, for_training=True, restore_logits=restore_logits)
-
         # loss
       model.loss(logits, labels, batch_size=FLAGS.batch_size)
       losses = tf.get_collection(slim.losses.LOSSES_COLLECTION)
-
         # Calculate the total loss for the current tower.
       regularization_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
       total_loss = tf.add_n(losses + regularization_losses, name='total_loss')
         #total_loss = tf.add_n(losses, name='total_loss')
-
         # Compute the moving average of all individual losses and the total loss.
       loss_averages = tf.train.ExponentialMovingAverage(0.9, name='avg')
       loss_averages_op = loss_averages.apply(losses + [total_loss])
@@ -115,15 +105,6 @@ class GraphPlacerTest():
         # Reuse variables for the next tower.
         #tf.get_variable_scope().reuse_variables()
 
-        # Retain the summaries from the final tower.
-      summaries = tf.get_collection(tf.GraphKeys.SUMMARIES)
-
-        # Retain the Batch Normalization updates operations only from the
-        # final tower. Ideally, we should grab the updates from all towers
-        # but these stats accumulate extremely fast so we can ignore the
-        # other stats from the other towers without significant detriment.
-      batchnorm_updates = tf.get_collection(slim.ops.UPDATE_OPS_COLLECTION)
-
         # add input summaries
         # summaries.extend(input_summaries)
 
@@ -131,7 +112,7 @@ class GraphPlacerTest():
       train_op = train_operation.train(total_loss, global_step, summaries, batchnorm_updates)
 
     train_op = g.get_collection_ref(tf_ops.GraphKeys.TRAIN_OP)
-    train_op.append(logits)
+    train_op.append(train_op)
     return g
 
   @staticmethod
