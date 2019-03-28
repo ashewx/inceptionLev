@@ -57,9 +57,9 @@ def inference(images, num_classes, for_training=False, restore_logits=True, scop
         # _activation_summaries(endpoints)
 
         # Grab the logits associated with the side head. Employed during training.
-        auxiliary_logits = endpoints['aux_logits']
+        auxiliary_logits = endpoints['AuxLogits']
 
-    softmax = endpoints['predictions']
+    softmax = endpoints['Predictions']
 
     if verbose:
         print logits.get_shape()
