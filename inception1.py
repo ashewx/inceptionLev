@@ -50,7 +50,7 @@ class GraphPlacerTest():
       inception.inception_v3(train_inputs, num_classes)
       eval_inputs = tf.random_uniform((eval_batch_size, height, width, 3))
       logits, _ = inception.inception_v3(eval_inputs, num_classes,
-                                       is_training=True, reuse=False)
+                                       is_training=True, reuse=True)
       predictions = tf.argmax(logits, 1)
 
     train_op = g.get_collection_ref(tf_ops.GraphKeys.TRAIN_OP)
