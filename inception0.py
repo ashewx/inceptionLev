@@ -73,7 +73,6 @@ class GraphPlacerTest():
 
       images_test, labels_test = dataset.test_inputs(FLAGS.testcsv, test_cnt)
 
-      images_test_debug = datasets.debug(images_test)
 
       input_summaries = copy.copy(tf.get_collection(tf.GraphKeys.SUMMARIES))
 
@@ -84,7 +83,6 @@ class GraphPlacerTest():
         # logits is tuple (logits, aux_liary_logits, predictions)
         # logits: output of final layer, auxliary_logits: output of hidden layer, softmax: predictions
       logits = model.inference(images, num_classes, for_training=True, restore_logits=restore_logits)
-      logits_test = model.inference(images_test, num_classes, for_training=False, restore_logits=restore_logits, reuse=True, dropout_keep_prob=1.0)
 
         # loss
       model.loss(logits, labels, batch_size=FLAGS.batch_size)
