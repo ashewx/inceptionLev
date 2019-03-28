@@ -86,21 +86,16 @@ class GraphPlacerTest():
 
         # loss
       model.loss(logits, labels, batch_size=FLAGS.batch_size)
-      model.loss_test(logits_test, labels_test, batch_size=test_cnt)
       losses = tf.get_collection(slim.losses.LOSSES_COLLECTION)
-      losses_test = tf.get_collection(slim.losses.LOSSES_COLLECTION_TEST)
 
         # Calculate the total loss for the current tower.
       regularization_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
       total_loss = tf.add_n(losses + regularization_losses, name='total_loss')
         #total_loss = tf.add_n(losses, name='total_loss')
-      total_loss_test = tf.add_n(losses_test, name='total_loss_test')
 
         # Compute the moving average of all individual losses and the total loss.
       loss_averages = tf.train.ExponentialMovingAverage(0.9, name='avg')
       loss_averages_op = loss_averages.apply(losses + [total_loss])
-      loss_averages_test = tf.train.ExponentialMovingAverage(0.9, name='avg_test')
-      loss_averages_op_test = loss_averages_test.apply(losses_test + [total_loss_test])
 
         # for l in losses + [total_loss]:
         #     # Remove 'tower_[0-9]/' from the name in case this is a multi-GPU training
@@ -116,10 +111,6 @@ class GraphPlacerTest():
       with tf.control_dependencies([loss_averages_op]):
         total_loss = tf.identity(total_loss)
       tf.summary.scalar("loss", total_loss)
-
-      with tf.control_dependencies([loss_averages_op_test]):
-        total_loss_test = tf.identity(total_loss_test)
-      tf.summary.scalar("loss_eval", total_loss_test)
 
         # Reuse variables for the next tower.
         #tf.get_variable_scope().reuse_variables()
