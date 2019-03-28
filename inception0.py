@@ -31,6 +31,22 @@ from tensorflow.python.ops import variable_scope
 from tensorflow.python.platform import test
 import tensorflow as tf
 
+import settings
+FLAGS = settings.FLAGS
+
+import os
+import re
+import copy
+from datetime import datetime
+import time
+from datasets import DataSet
+import datasets
+
+import model
+import train_operation
+import slim.slim
+import numpy as np
+
 cluster = tf.train.ClusterSpec({"local": ["172.23.10.2:2222", "172.23.10.3:2223", "172.23.10.4:2224", "172.23.10.6:2225"]})
 server1 = tf.train.Server(cluster, job_name="local", task_index=0)
 
@@ -41,10 +57,92 @@ class GraphPlacerTest():
     g = tf.Graph()
 
     with g.as_default():
+      # global step number
+      global_step = tf.get_variable('global_step', [], initializer=tf.constant_initializer(0), trainable=False)
+      dataset = DataSet()
 
+      # get training set
+      print("The number of training images is: %d" % (dataset.cnt_samples(FLAGS.traincsv)))
+      images, labels = dataset.csv_inputs(FLAGS.traincsv, FLAGS.batch_size, distorted=True)
+
+      images_debug = datasets.debug(images)
+
+        # get test set
+        #test_cnt = dataset.cnt_samples(FLAGS.testcsv)
+      test_cnt = 100
+
+      images_test, labels_test = dataset.test_inputs(FLAGS.testcsv, test_cnt)
+
+      images_test_debug = datasets.debug(images_test)
+
+      input_summaries = copy.copy(tf.get_collection(tf.GraphKeys.SUMMARIES))
+
+      num_classes = FLAGS.num_classes
+      restore_logits = not FLAGS.fine_tune
+
+        # inference
+        # logits is tuple (logits, aux_liary_logits, predictions)
+        # logits: output of final layer, auxliary_logits: output of hidden layer, softmax: predictions
+      logits = model.inference(images, num_classes, for_training=True, restore_logits=restore_logits)
+      logits_test = model.inference(images_test, num_classes, for_training=False, restore_logits=restore_logits, reuse=True, dropout_keep_prob=1.0)
+
+        # loss
+      model.loss(logits, labels, batch_size=FLAGS.batch_size)
+      model.loss_test(logits_test, labels_test, batch_size=test_cnt)
+      losses = tf.get_collection(slim.losses.LOSSES_COLLECTION)
+      losses_test = tf.get_collection(slim.losses.LOSSES_COLLECTION_TEST)
+
+        # Calculate the total loss for the current tower.
+      regularization_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
+      total_loss = tf.add_n(losses + regularization_losses, name='total_loss')
+        #total_loss = tf.add_n(losses, name='total_loss')
+      total_loss_test = tf.add_n(losses_test, name='total_loss_test')
+
+        # Compute the moving average of all individual losses and the total loss.
+      loss_averages = tf.train.ExponentialMovingAverage(0.9, name='avg')
+      loss_averages_op = loss_averages.apply(losses + [total_loss])
+      loss_averages_test = tf.train.ExponentialMovingAverage(0.9, name='avg_test')
+      loss_averages_op_test = loss_averages_test.apply(losses_test + [total_loss_test])
+
+        # for l in losses + [total_loss]:
+        #     # Remove 'tower_[0-9]/' from the name in case this is a multi-GPU training
+        #     # session. This helps the clarity of presentation on TensorBoard.
+        #     loss_name = re.sub('%s_[0-9]*/' % model.TOWER_NAME, '', l.op.name)
+        #     # Name each loss as '(raw)' and name the moving average version of the loss
+        #     # as the original loss name.
+        #     tf.scalar_summary(loss_name + ' (raw)', l)
+        #     tf.scalar_summary(loss_name, loss_averages.average(l))
+
+        # loss to calcurate gradients
+        #
+      with tf.control_dependencies([loss_averages_op]):
+        total_loss = tf.identity(total_loss)
+      tf.summary.scalar("loss", total_loss)
+
+      with tf.control_dependencies([loss_averages_op_test]):
+        total_loss_test = tf.identity(total_loss_test)
+      tf.summary.scalar("loss_eval", total_loss_test)
+
+        # Reuse variables for the next tower.
+        #tf.get_variable_scope().reuse_variables()
+
+        # Retain the summaries from the final tower.
+      summaries = tf.get_collection(tf.GraphKeys.SUMMARIES)
+
+        # Retain the Batch Normalization updates operations only from the
+        # final tower. Ideally, we should grab the updates from all towers
+        # but these stats accumulate extremely fast so we can ignore the
+        # other stats from the other towers without significant detriment.
+      batchnorm_updates = tf.get_collection(slim.ops.UPDATE_OPS_COLLECTION)
+
+        # add input summaries
+        # summaries.extend(input_summaries)
+
+        # train_operation and operation summaries
+      train_op = train_operation.train(total_loss, global_step, summaries, batchnorm_updates)
 
     train_op = g.get_collection_ref(tf_ops.GraphKeys.TRAIN_OP)
-    train_op.append()
+    train_op.append(train_op)
     return g
 
   @staticmethod
