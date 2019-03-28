@@ -131,7 +131,7 @@ class GraphPlacerTest():
       train_op = train_operation.train(total_loss, global_step, summaries, batchnorm_updates)
 
     train_op = g.get_collection_ref(tf_ops.GraphKeys.TRAIN_OP)
-    train_op.append(train_op)
+    train_op.append(logits)
     return g
 
   @staticmethod
