@@ -31,21 +31,7 @@ from tensorflow.python.ops import variable_scope
 from tensorflow.python.platform import test
 import tensorflow as tf
 
-import settings
-FLAGS = settings.FLAGS
-
-import os
-import re
-import copy
-from datetime import datetime
-import time
-from datasets import DataSet
-import datasets
-
-import model
-import train_operation
-import slim.slim
-import numpy as np
+from nets import inception
 
 cluster = tf.train.ClusterSpec({"local": ["172.23.10.2:2222", "172.23.10.3:2223", "172.23.10.4:2224", "172.23.10.6:2225"]})
 server1 = tf.train.Server(cluster, job_name="local", task_index=0)
@@ -55,64 +41,20 @@ class GraphPlacerTest():
   @staticmethod
   def _buildInception():
     g = tf.Graph()
-
+    train_batch_size = 5
+    eval_batch_size = 2
+    height, width = 150, 150
+    num_classes = 1000
     with g.as_default():
-      # global step number
-      global_step = tf.get_variable('global_step', [], initializer=tf.constant_initializer(0), trainable=False)
-      dataset = DataSet()
-
-      # get training set
-      print("The number of training images is: %d" % (dataset.cnt_samples(FLAGS.traincsv)))
-      images, labels = dataset.csv_inputs(FLAGS.traincsv, FLAGS.batch_size, distorted=True)
-      images_debug = datasets.debug(images)
-        # get test set
-        #test_cnt = dataset.cnt_samples(FLAGS.testcsv)
-      test_cnt = 100
-      input_summaries = copy.copy(tf.get_collection(tf.GraphKeys.SUMMARIES))
-
-      num_classes = FLAGS.num_classes
-      restore_logits = not FLAGS.fine_tune
-        # inference
-        # logits is tuple (logits, aux_liary_logits, predictions)
-        # logits: output of final layer, auxliary_logits: output of hidden layer, softmax: predictions
-      logits = model.inference(images, num_classes, for_training=True, restore_logits=restore_logits)
-        # loss
-      model.loss(logits, labels, batch_size=FLAGS.batch_size)
-      losses = tf.get_collection(slim.losses.LOSSES_COLLECTION)
-        # Calculate the total loss for the current tower.
-      regularization_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
-      total_loss = tf.add_n(losses + regularization_losses, name='total_loss')
-        #total_loss = tf.add_n(losses, name='total_loss')
-        # Compute the moving average of all individual losses and the total loss.
-      loss_averages = tf.train.ExponentialMovingAverage(0.9, name='avg')
-      loss_averages_op = loss_averages.apply(losses + [total_loss])
-
-        # for l in losses + [total_loss]:
-        #     # Remove 'tower_[0-9]/' from the name in case this is a multi-GPU training
-        #     # session. This helps the clarity of presentation on TensorBoard.
-        #     loss_name = re.sub('%s_[0-9]*/' % model.TOWER_NAME, '', l.op.name)
-        #     # Name each loss as '(raw)' and name the moving average version of the loss
-        #     # as the original loss name.
-        #     tf.scalar_summary(loss_name + ' (raw)', l)
-        #     tf.scalar_summary(loss_name, loss_averages.average(l))
-
-        # loss to calcurate gradients
-        #
-      with tf.control_dependencies([loss_averages_op]):
-        total_loss = tf.identity(total_loss)
-      tf.summary.scalar("loss", total_loss)
-
-        # Reuse variables for the next tower.
-        #tf.get_variable_scope().reuse_variables()
-
-        # add input summaries
-        # summaries.extend(input_summaries)
-
-        # train_operation and operation summaries
-      train_op = train_operation.train(total_loss, global_step, summaries, batchnorm_updates)
+      train_inputs = tf.random_uniform((train_batch_size, height, width, 3))
+      inception.inception_v3(train_inputs, num_classes)
+      eval_inputs = tf.random_uniform((eval_batch_size, height, width, 3))
+      logits, _ = inception.inception_v3(eval_inputs, num_classes,
+                                       is_training=True, reuse=False)
+      predictions = tf.argmax(logits, 1)
 
     train_op = g.get_collection_ref(tf_ops.GraphKeys.TRAIN_OP)
-    train_op.append(train_op)
+    train_op.append(predictions)
     return g
 
   @staticmethod
