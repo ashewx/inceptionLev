@@ -50,7 +50,6 @@ def inference(images, num_classes, for_training=False, restore_logits=True, scop
                 dropout_keep_prob=dropout_keep_prob,
                 num_classes=num_classes,
                 is_training=for_training,
-                restore_logits=restore_logits,
                 scope=scope,
                 reuse=reuse)
 
