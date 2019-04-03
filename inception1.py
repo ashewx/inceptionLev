@@ -43,14 +43,11 @@ class GraphPlacerTest():
     g = tf.Graph()
     train_batch_size = 5
     eval_batch_size = 2
-    height, width = 150, 150
+    height, width = 299, 299
     num_classes = 1000
     with g.as_default():
       train_inputs = tf.random_uniform((train_batch_size, height, width, 3))
-      inception.inception_v3(train_inputs, num_classes)
-      eval_inputs = tf.random_uniform((eval_batch_size, height, width, 3))
-      logits, _ = inception.inception_v3(eval_inputs, num_classes,
-                                       is_training=True, reuse=True)
+      logits, _ = inception.inception_v3(train_inputs, num_classes)
       predictions = tf.argmax(logits, 1)
 
     train_op = g.get_collection_ref(tf_ops.GraphKeys.TRAIN_OP)
